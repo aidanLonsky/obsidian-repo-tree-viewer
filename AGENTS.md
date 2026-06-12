@@ -267,3 +267,53 @@ this.registerInterval(
 - Developer policies: https://docs.obsidian.md/Developer+policies
 - Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
 - Style guide: https://help.obsidian.md/style-guide
+
+## Obsidian Repo Tree Plugin
+
+### Project context
+Obsidian plugin that renders a `tree`-style directory structure of a git repository
+into a note via a fenced code block processor. Extends the official Obsidian sample
+plugin as a base.
+
+### Architecture decisions (settled — do not relitigate)
+- Desktop: `fs`/`child_process` walk, respects `.gitignore` via `git ls-files`
+- Remote fallback: GitHub Trees API (`/git/trees/{sha}?recursive=1`)
+- Caching: in-memory Map (TTL 5 min) + `app.vault.adapter` for persistence
+- No external sidecar processes
+- Mobile: GitHub path only; fs walk gracefully disabled
+
+### Code style
+- TypeScript strict mode
+- Async/await throughout, no raw Promise chains
+- Obsidian API: prefer `vault.process()` over read+modify for note writes
+
+### Key interfaces
+\`\`\`ts
+interface RepoTreeSettings {
+  defaultRepoPath: string;
+  githubToken: string;
+  cacheTTLMinutes: number;
+  maxDepth: number;
+  respectGitignore: boolean;
+}
+
+interface CacheEntry {
+  tree: string;
+  timestamp: number;
+  source: 'local' | 'github';
+}
+\`\`\`
+
+### Code block syntax this plugin handles
+\`\`\`repo-tree
+path: /absolute/path/to/repo
+\`\`\`
+\`\`\`repo-tree
+github: owner/repo
+ref: main
+\`\`\`
+
+### Out of scope
+- Vault file trees (use Obsidian core or Dataview for that)
+- Write operations to the repo
+- Git operations beyond ls-files
